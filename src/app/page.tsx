@@ -1,22 +1,39 @@
+'use client'
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Home() {
+  const [imageError, setImageError] = useState(false);
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Background com gradiente e imagem de fundo */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"
-        style={{
-          backgroundImage: "url('/images/background.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundBlendMode: 'overlay'
-        }}
-      >
-        {/* Overlay para melhorar a legibilidade */}
-        <div className="absolute inset-0 bg-black/40"></div>
-      </div>
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
+      {/* Overlay para o gradiente */}
+      <div className="absolute inset-0 bg-black/20"></div>
+
+      {/* Foto do sócio - elemento decorativo */}
+      {!imageError && (
+        <div className="absolute top-8 right-8 hidden lg:block">
+          <div className="relative group">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/30 shadow-xl transition-transform group-hover:scale-110 group-hover:rotate-12">
+              <Image
+                src="/images/background.png"
+                alt="Sócio"
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+            {/* Tooltip divertido */}
+            <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-white/90 text-gray-800 px-3 py-1 rounded-lg text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              👋 Olá do sócio!
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Conteúdo principal */}
       <div className="relative z-10 min-h-screen flex flex-col">
@@ -66,7 +83,7 @@ export default function Home() {
             </p>
 
             {/* Call to action */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
               <Link 
                 href="/login"
                 className="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white transition-all duration-300 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 hover:scale-105 shadow-xl hover:shadow-2xl"
@@ -93,7 +110,7 @@ export default function Home() {
             </div>
 
             {/* Features destacadas */}
-            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,6 +157,25 @@ export default function Home() {
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
       </div>
+
+      {/* Foto do sócio no mobile - versão menor no canto inferior */}
+      {!imageError && (
+        <div className="absolute bottom-8 right-8 lg:hidden">
+          <div className="relative group">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/30 shadow-lg transition-transform group-hover:scale-110">
+              <Image
+                src="/images/background.png"
+                alt="Sócio"
+                width={64}
+                height={64}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border border-white animate-pulse"></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
