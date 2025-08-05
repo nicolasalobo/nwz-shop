@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Layout from '@/components/Layout'
 
 interface Produto {
   id: number
@@ -352,119 +353,142 @@ export default function GerenciarEstoque() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Gerenciar Estoque</h1>
-          <button
-            onClick={() => router.push('/painel')}
-            className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded"
-          >
-            Voltar ao Painel
-          </button>
-        </div>
-
+    <Layout title="Gerenciar Estoque">
+      <div className="space-y-6">
         {/* Mensagem */}
         {msg && (
-          <div className={`mb-4 p-3 rounded ${
+          <div className={`p-4 rounded-xl border-l-4 ${
             msg.includes('sucesso') 
-              ? 'bg-green-100 text-green-700 border border-green-300' 
-              : 'bg-red-100 text-red-700 border border-red-300'
+              ? 'bg-green-500/20 border-green-400 text-green-100' 
+              : 'bg-red-500/20 border-red-400 text-red-100'
           }`}>
-            {msg}
+            <p className="font-medium">{msg}</p>
           </div>
         )}
 
         {/* Adicionar novo produto */}
-        <div className="bg-gray-900 p-4 rounded-lg mb-6">
-          <h2 className="text-xl font-bold mb-4">Adicionar Novo Produto/Sabor</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <input
-              type="text"
-              placeholder="Nome do produto"
-              value={novoNome}
-              onChange={(e) => setNovoNome(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
-            />
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Preço"
-              value={novoPreco}
-              onChange={(e) => setNovoPreco(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
-            />
-            <input
-              type="text"
-              placeholder="Sabor"
-              value={novoSabor}
-              onChange={(e) => setNovoSabor(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
-            />
-            <input
-              type="number"
-              placeholder="Quantidade inicial"
-              value={novaQuantidade}
-              onChange={(e) => setNovaQuantidade(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2"
-            />
-            <button
-              onClick={adicionarProduto}
-              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded"
-            >
-              Adicionar
-            </button>
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3">
+              <span className="text-lg">+</span>
+            </div>
+            Adicionar Novo Produto/Sabor
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Nome do Produto</label>
+              <input
+                type="text"
+                placeholder="Ex: Brigadeiro Gourmet"
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Preço</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={novoPreco}
+                onChange={(e) => setNovoPreco(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Sabor</label>
+              <input
+                type="text"
+                placeholder="Ex: Chocolate"
+                value={novoSabor}
+                onChange={(e) => setNovoSabor(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Quantidade</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={novaQuantidade}
+                onChange={(e) => setNovaQuantidade(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={adicionarProduto}
+                disabled={carregando}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+              >
+                {carregando ? 'Adicionando...' : 'Adicionar'}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Lista de produtos */}
-        {loading ? (
-          <div className="text-center py-8">
-            <span className="text-gray-400">Carregando estoque...</span>
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <h3 className="text-lg font-semibold text-white">Produtos em Estoque</h3>
           </div>
-        ) : produtosSabores.length === 0 ? (
-          <div className="text-center py-8">
-            <span className="text-gray-400">Nenhum produto encontrado no estoque.</span>
-          </div>
-        ) : (
-          <div className="bg-gray-900 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-800">
-                <tr>
-                  <th className="text-left p-4">Produto</th>
-                  <th className="text-left p-4">Sabor</th>
-                  <th className="text-right p-4">Preço</th>
-                  <th className="text-center p-4">Quantidade</th>
-                  <th className="text-center p-4">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {produtosSabores.map((item) => (
-                  <EstoqueItem
-                    key={item.id}
-                    item={item}
-                    editando={editando === item.id}
-                    onEdit={() => {
-                      setEditando(item.id)
-                      setItemEditando(item)
-                    }}
-                    onSave={(sabor, quantidade) => {
-                      editarProduto(sabor, quantidade)
-                    }}
-                    onCancel={() => {
-                      setEditando(null)
-                      setItemEditando(null)
-                    }}
-                    onRemove={() => removerProduto(item)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-300">Carregando estoque...</span>
+              </div>
+            </div>
+          ) : produtosSabores.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">📦</div>
+              <span className="text-gray-300">Nenhum produto encontrado no estoque.</span>
+              <p className="text-gray-400 text-sm mt-2">Adicione o primeiro produto usando o formulário acima.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-white/5">
+                  <tr>
+                    <th className="text-left p-4 text-gray-300 font-medium">Produto</th>
+                    <th className="text-left p-4 text-gray-300 font-medium">Sabor</th>
+                    <th className="text-right p-4 text-gray-300 font-medium">Preço</th>
+                    <th className="text-center p-4 text-gray-300 font-medium">Quantidade</th>
+                    <th className="text-center p-4 text-gray-300 font-medium">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtosSabores.map((item) => (
+                    <EstoqueItem
+                      key={item.id}
+                      item={item}
+                      editando={editando === item.id}
+                      onEdit={() => {
+                        setEditando(item.id)
+                        setItemEditando(item)
+                      }}
+                      onSave={(sabor, quantidade) => {
+                        editarProduto(sabor, quantidade)
+                      }}
+                      onCancel={() => {
+                        setEditando(null)
+                        setItemEditando(null)
+                      }}
+                      onRemove={() => removerProduto(item)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }
 
@@ -545,13 +569,13 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
           <div className="flex gap-2 justify-center">
             <button
               onClick={handleSave}
-              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-300"
             >
               Salvar
             </button>
             <button
               onClick={onCancel}
-              className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm"
+              className="bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-300"
             >
               Cancelar
             </button>
@@ -562,24 +586,34 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
   }
 
   return (
-    <tr className="border-b border-gray-700 hover:bg-gray-800">
-      <td className="p-4 font-medium">{item.produtos.nome}</td>
-      <td className="p-4">{item.sabor}</td>
-      <td className="p-4 text-right">R$ {item.produtos.preco.toFixed(2)}</td>
-      <td className="p-4 text-center">{item.quantidade}</td>
+    <tr className="border-b border-white/10 hover:bg-white/5 transition-colors">
+      <td className="p-4 font-medium text-white">{item.produtos.nome}</td>
+      <td className="p-4 text-gray-300">{item.sabor}</td>
+      <td className="p-4 text-right text-green-400 font-medium">R$ {item.produtos.preco.toFixed(2).replace('.', ',')}</td>
+      <td className="p-4 text-center">
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          item.quantidade > 10 
+            ? 'bg-green-500/20 text-green-300' 
+            : item.quantidade > 0 
+            ? 'bg-yellow-500/20 text-yellow-300' 
+            : 'bg-red-500/20 text-red-300'
+        }`}>
+          {item.quantidade}
+        </span>
+      </td>
       <td className="p-4">
         <div className="flex gap-2 justify-center">
           <button
             onClick={onEdit}
-            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105"
           >
-            Editar
+            ✏️ Editar
           </button>
           <button
             onClick={onRemove}
-            className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm"
+            className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105"
           >
-            Remover
+            🗑️ Remover
           </button>
         </div>
       </td>

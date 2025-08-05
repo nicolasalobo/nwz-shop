@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSaldo } from '@/lib/getSaldo'
 import { supabase } from '@/lib/supabase'
+import Layout from '@/components/Layout'
 
 export default function PainelPrincipal() {
   const router = useRouter()
@@ -136,66 +137,123 @@ export default function PainelPrincipal() {
     }
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      
-      {/* Header com saldo no canto superior direito */}
-      <div className="flex justify-end items-center p-4">
-        <span className="text-lg font-bold text-black bg-white px-4 py-2 rounded">
-          R$ {saldo.toFixed(2)}
-        </span>
-      </div>
+  const cards = [
+    {
+      title: 'Venda Comum',
+      description: 'Registre vendas rápidas de produtos em estoque',
+      icon: '🛒',
+      action: () => router.push('/venda-comum'),
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      title: 'Venda Personalizada',
+      description: 'Vendas com personalizações e detalhes específicos',
+      icon: '✨',
+      action: () => router.push('/venda-personalizada'),
+      color: 'from-purple-500 to-purple-600'
+    },
+    {
+      title: 'Gerenciar Estoque',
+      description: 'Controle completo do seu inventário',
+      icon: '📦',
+      action: () => router.push('/estoque'),
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      title: 'Copiar Catálogo',
+      description: 'Gere um catálogo atualizado para compartilhar',
+      icon: '📋',
+      action: copiarCatalogo,
+      color: 'from-orange-500 to-orange-600'
+    },
+    {
+      title: 'Histórico de Vendas',
+      description: 'Visualize relatórios e histórico completo',
+      icon: '📊',
+      action: () => router.push('/historico'),
+      color: 'from-gray-500 to-gray-600'
+    }
+  ]
 
-      {/* Conteúdo principal centralizado */}
-      <div className="flex flex-col items-center justify-center flex-grow space-y-4">
-        <h1 className="text-3xl font-bold mb-4">Painel Principal</h1>
+  return (
+    <Layout title="Painel Principal">
+      <div className="space-y-8">
+        {/* Saldo Display */}
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-medium opacity-90">Saldo Atual</h2>
+              <p className="text-3xl font-bold">
+                R$ {saldo.toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+            <div className="text-4xl">
+              💰
+            </div>
+          </div>
+        </div>
 
         {/* Mensagem */}
         {msg && (
-          <div className={`mb-4 p-3 rounded ${
-            msg.includes('copiado') || msg.includes('sucesso')
-              ? 'bg-green-100 text-green-700 border border-green-300' 
-              : 'bg-blue-100 text-blue-700 border border-blue-300'
+          <div className={`p-4 rounded-xl border-l-4 ${
+            msg.includes('copiado') || msg.includes('sucesso') || msg.includes('✅')
+              ? 'bg-green-500/20 border-green-400 text-green-100' 
+              : 'bg-blue-500/20 border-blue-400 text-blue-100'
           }`}>
-            {msg}
+            <p className="font-medium">{msg}</p>
           </div>
         )}
 
-        <button
-          onClick={() => router.push('/venda-comum')}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded w-64"
-        >
-          Registrar Venda Comum
-        </button>
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {cards.map((card, index) => (
+            <button
+              key={index}
+              onClick={card.action}
+              className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 transform hover:scale-105 text-left"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center text-2xl`}>
+                  {card.icon}
+                </div>
+                <svg className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">
+                {card.title}
+              </h3>
+              <p className="text-gray-300 text-sm">
+                {card.description}
+              </p>
+            </button>
+          ))}
+        </div>
 
-        <button
-          onClick={() => router.push('/venda-personalizada')}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded w-64"
-        >
-          Registrar Venda Personalizada
-        </button>
-
-        <button
-          onClick={() => router.push('/estoque')}
-          className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded w-64"
-        >
-          Gerenciar Estoque
-        </button>
-
-        <button
-          onClick={copiarCatalogo}
-          className="bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded w-64"
-        >
-          📋 Copiar Catálogo
-        </button>
-
-        <button
-          onClick={() => router.push('/historico')}
-          className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded w-64"
-        >
-          Histórico de Vendas
-        </button>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">🎯</div>
+            <div className="text-sm text-gray-300">Meta do Mês</div>
+            <div className="text-lg font-semibold text-white">Em breve</div>
+          </div>
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">📈</div>
+            <div className="text-sm text-gray-300">Vendas Hoje</div>
+            <div className="text-lg font-semibold text-white">Em breve</div>
+          </div>
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">⚡</div>
+            <div className="text-sm text-gray-300">Status</div>
+            <div className="text-lg font-semibold text-green-400">Online</div>
+          </div>
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-center">
+            <div className="text-2xl mb-2">🕒</div>
+            <div className="text-sm text-gray-300">Última Venda</div>
+            <div className="text-lg font-semibold text-white">Em breve</div>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }

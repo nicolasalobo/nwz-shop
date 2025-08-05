@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Layout from '@/components/Layout'
 
 type ProdutoSabor = {
   id: number
@@ -177,74 +178,136 @@ export default function VendaPersonalizadaPage() {
   }
 
   return (
-    <main className="p-4 text-white max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Venda Personalizada</h1>
+    <Layout title="Venda Personalizada">
+      <div className="space-y-6">
+        {/* Mensagem */}
+        {mensagem && (
+          <div className={`p-4 rounded-xl border-l-4 ${
+            mensagem.includes('sucesso') 
+              ? 'bg-green-500/20 border-green-400 text-green-100' 
+              : 'bg-red-500/20 border-red-400 text-red-100'
+          }`}>
+            <p className="font-medium">{mensagem}</p>
+          </div>
+        )}
 
-      {produtosSabores.length === 0 ? (
-        <div className="bg-yellow-600 text-white p-4 rounded mb-4">
-          <p className="font-semibold">Nenhum produto disponível</p>
-          <p className="text-sm">Não há produtos com estoque para venda no momento.</p>
-        </div>
-      ) : (
-        <>
-          <label className="block mb-2">
-            Produto:
-            <select
-              className="w-full p-2 bg-gray-800 rounded mt-1"
-              value={idSelecionado ?? ''}
-              onChange={(e) => setIdSelecionado(Number(e.target.value))}
-            >
-              <option value="">Selecione um produto</option>
-              {produtosSabores.map((produtoSabor) => (
-                <option key={produtoSabor.id} value={produtoSabor.id}>
-                  {produtoSabor.produtos.nome} - {produtoSabor.sabor} (Estoque: {produtoSabor.quantidade})
-                </option>
-              ))}
-            </select>
-          </label>
+        {produtosSabores.length === 0 ? (
+          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl p-8 text-center">
+            <div className="text-4xl mb-4">📭</div>
+            <h3 className="text-lg font-semibold text-yellow-300 mb-2">Nenhum produto disponível</h3>
+            <p className="text-yellow-200">Não há produtos com estoque para venda no momento.</p>
+          </div>
+        ) : (
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+            <div className="flex items-center mb-6">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-xl">✨</span>
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Configurar Venda Personalizada</h2>
+                <p className="text-gray-400 text-sm">Defina preços especiais e adicione observações</p>
+              </div>
+            </div>
 
-          <label className="block mb-2">
-            Preço personalizado:
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className="w-full p-2 bg-gray-800 rounded mt-1"
-              value={preco}
-              onChange={(e) => setPreco(e.target.value)}
-              placeholder="Digite o preço personalizado"
-            />
-          </label>
+            <div className="space-y-6">
+              {/* Seleção de Produto */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Produto
+                </label>
+                <select
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                  value={idSelecionado ?? ''}
+                  onChange={(e) => setIdSelecionado(Number(e.target.value))}
+                >
+                  <option value="" className="bg-gray-800">Selecione um produto</option>
+                  {produtosSabores.map((produtoSabor) => (
+                    <option key={produtoSabor.id} value={produtoSabor.id} className="bg-gray-800">
+                      {produtoSabor.produtos.nome} - {produtoSabor.sabor} (Estoque: {produtoSabor.quantidade})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <label className="block mb-4">
-            Descrição do motivo:
-            <textarea
-              className="w-full p-2 bg-gray-800 rounded mt-1"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Explique o motivo do preço personalizado"
-              rows={3}
-            />
-          </label>
+              {/* Preço Personalizado */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Preço Personalizado
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-400">R$</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                    value={preco}
+                    onChange={(e) => setPreco(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+                <p className="text-gray-400 text-xs mt-1">Defina um preço diferente do padrão</p>
+              </div>
 
-          <button
-            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
-            onClick={registrarVenda}
-          >
-            Registrar Venda
-          </button>
-        </>
-      )}
+              {/* Descrição do Motivo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Motivo da Personalização
+                </label>
+                <textarea
+                  className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-none"
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Explique o motivo do preço personalizado (ex: promoção, desconto especial, etc.)"
+                  rows={3}
+                />
+              </div>
 
-      {mensagem && (
-        <div className={`mt-4 p-3 rounded ${
-          mensagem.includes('sucesso') 
-            ? 'bg-green-100 text-green-700 border border-green-300' 
-            : 'bg-red-100 text-red-700 border border-red-300'
-        }`}>
-          {mensagem}
-        </div>
-      )}
-    </main>
+              {/* Preview da Venda */}
+              {idSelecionado && preco && (
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                  <h4 className="font-medium text-white mb-2">Preview da Venda:</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Produto:</span>
+                      <span className="text-white">
+                        {produtosSabores.find(p => p.id === idSelecionado)?.produtos.nome} - {produtosSabores.find(p => p.id === idSelecionado)?.sabor}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Preço original:</span>
+                      <span className="text-gray-400 line-through">
+                        R$ {produtosSabores.find(p => p.id === idSelecionado)?.produtos.preco.toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-300">Preço personalizado:</span>
+                      <span className="text-green-400 font-medium">
+                        R$ {parseFloat(preco || '0').toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Botão de Registrar */}
+              <button
+                onClick={registrarVenda}
+                disabled={!idSelecionado || !preco || !descricao.trim()}
+                className={`w-full py-4 rounded-xl text-white font-semibold text-lg transition-all duration-300 transform ${
+                  idSelecionado && preco && descricao.trim()
+                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 hover:scale-[1.02] shadow-lg hover:shadow-xl'
+                    : 'bg-gray-600 cursor-not-allowed opacity-50'
+                }`}
+              >
+                ✨ Registrar Venda Personalizada
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
   )
 }

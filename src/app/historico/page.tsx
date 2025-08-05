@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import Layout from '@/components/Layout'
 
 interface Venda {
   id: number
@@ -75,17 +76,23 @@ export default function HistoricoVendas() {
 
   const renderizarProdutos = (itensVenda: ItemVenda[]) => {
     return (
-      <div className="text-sm space-y-1">
+      <div className="space-y-1">
         {itensVenda.map((item, index) => (
-          <div key={index}>
-            <span className="font-medium">{item.produtos.nome}</span> - 
-            Qtd: {item.quantidade} x R$ {item.preco_unitario.toFixed(2)} = 
-            R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
-            {item.preco_unitario !== item.produtos.preco && (
-              <span className="text-blue-600 ml-2">
-                (Preço original: R$ {item.produtos.preco.toFixed(2)})
+          <div key={index} className="text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-white">{item.produtos.nome}</span>
+              <span className="text-green-400">
+                R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}
               </span>
-            )}
+            </div>
+            <div className="text-gray-400 text-xs">
+              Qtd: {item.quantidade} x R$ {item.preco_unitario.toFixed(2).replace('.', ',')}
+              {item.preco_unitario !== item.produtos.preco && (
+                <span className="text-blue-400 ml-2">
+                  (Original: R$ {item.produtos.preco.toFixed(2).replace('.', ',')})
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -95,82 +102,111 @@ export default function HistoricoVendas() {
   const totalVendas = vendas.reduce((acc, venda) => acc + venda.total, 0)
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Histórico de Vendas</h1>
-          <button
-            onClick={() => router.push('/painel')}
-            className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded"
-          >
-            Voltar ao Painel
-          </button>
-        </div>
-
+    <Layout title="Histórico de Vendas">
+      <div className="space-y-6">
         {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-800 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-blue-400">
-              {vendas.length}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-blue-400">
+                  {vendas.length}
+                </div>
+                <span className="text-gray-300">Total de Vendas</span>
+              </div>
+              <div className="text-3xl">📊</div>
             </div>
-            <span className="text-gray-400">Total de Vendas</span>
           </div>
-          <div className="bg-gray-800 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-green-400">
-              R$ {totalVendas.toFixed(2)}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-green-400">
+                  R$ {totalVendas.toFixed(2).replace('.', ',')}
+                </div>
+                <span className="text-gray-300">Valor Total</span>
+              </div>
+              <div className="text-3xl">💰</div>
             </div>
-            <span className="text-gray-400">Valor Total</span>
           </div>
-          <div className="bg-gray-800 p-4 rounded-lg">
-            <div className="text-2xl font-bold text-purple-400">
-              R$ {vendas.length > 0 ? (totalVendas / vendas.length).toFixed(2) : '0.00'}
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-purple-400">
+                  R$ {vendas.length > 0 ? (totalVendas / vendas.length).toFixed(2).replace('.', ',') : '0,00'}
+                </div>
+                <span className="text-gray-300">Ticket Médio</span>
+              </div>
+              <div className="text-3xl">📈</div>
             </div>
-            <span className="text-gray-400">Ticket Médio</span>
           </div>
         </div>
 
         {/* Lista de vendas */}
-        {loading ? (
-          <div className="text-center py-8">
-            <span className="text-gray-400">Carregando vendas...</span>
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-white/10">
+            <h3 className="text-lg font-semibold text-white">Vendas Realizadas</h3>
           </div>
-        ) : vendas.length === 0 ? (
-          <div className="text-center py-8">
-            <span className="text-gray-400">Nenhuma venda encontrada</span>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {vendas.map((venda) => (
-              <div key={venda.id} className="bg-gray-900 p-4 rounded border border-gray-700">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {/* Informações básicas */}
-                  <div>
-                    <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-600 text-white">
-                      Venda #{venda.id}
-                    </span>
-                    <div className="mt-2 text-sm text-gray-400">
-                      {formatarData(venda.data_hora)}
+          
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-300">Carregando vendas...</span>
+              </div>
+            </div>
+          ) : vendas.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">📋</div>
+              <span className="text-gray-300">Nenhuma venda encontrada</span>
+              <p className="text-gray-400 text-sm mt-2">As vendas aparecerão aqui quando forem realizadas.</p>
+            </div>
+          ) : (
+            <div className="p-4 space-y-4">
+              {vendas.map((venda) => (
+                <div key={venda.id} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-colors">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                    {/* Informações básicas */}
+                    <div>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                          Venda #{venda.id}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        <div className="flex items-center space-x-1">
+                          <span>📅</span>
+                          <span>{formatarData(venda.data_hora)}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Produtos */}
-                  <div className="col-span-2">
-                    {renderizarProdutos(venda.itens_venda)}
-                  </div>
+                    {/* Produtos */}
+                    <div className="lg:col-span-2">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-white text-sm">Produtos:</h4>
+                        {renderizarProdutos(venda.itens_venda)}
+                      </div>
+                    </div>
 
-                  {/* Valor total */}
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-green-400">
-                      R$ {venda.total.toFixed(2)}
+                    {/* Valor total */}
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-green-400">
+                        R$ {venda.total.toFixed(2).replace('.', ',')}
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Total da venda
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Layout>
   )
 }

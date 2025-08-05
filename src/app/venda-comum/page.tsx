@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import Layout from '@/components/Layout'
 
 interface ProdutoSabor {
   id: number
@@ -275,70 +276,148 @@ export default function VendaComum() {
   }
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Venda Comum</h1>
+    <Layout title="Venda Comum">
+      <div className="space-y-6">
+        {/* Mensagem */}
+        {msg && (
+          <div className={`p-4 rounded-xl border-l-4 ${
+            msg.includes('sucesso') 
+              ? 'bg-green-500/20 border-green-400 text-green-100' 
+              : 'bg-red-500/20 border-red-400 text-red-100'
+          }`}>
+            <p className="font-medium">{msg}</p>
+          </div>
+        )}
 
-      {msg && (
-        <div className={`mb-4 p-3 rounded ${
-          msg.includes('sucesso') 
-            ? 'bg-green-100 text-green-700 border border-green-300' 
-            : 'bg-red-100 text-red-700 border border-red-300'
-        }`}>
-          {msg}
-        </div>
-      )}
+        {produtosSabores.length === 0 ? (
+          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-xl p-8 text-center">
+            <div className="text-4xl mb-4">📭</div>
+            <h3 className="text-lg font-semibold text-yellow-300 mb-2">Nenhum produto disponível</h3>
+            <p className="text-yellow-200">Não há produtos com estoque para venda no momento.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Produtos */}
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-white/10">
+                <h3 className="text-lg font-semibold text-white flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-lg">🛒</span>
+                  </div>
+                  Produtos Disponíveis
+                </h3>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-white/5">
+                    <tr>
+                      <th className="text-left p-4 text-gray-300 font-medium">Produto</th>
+                      <th className="text-right p-4 text-gray-300 font-medium">Preço</th>
+                      <th className="text-center p-4 text-gray-300 font-medium">Estoque</th>
+                      <th className="text-center p-4 text-gray-300 font-medium">Quantidade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {produtosSabores.map(p => (
+                      <tr key={p.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                        <td className="p-4 text-white font-medium">
+                          {p.produtos.nome} - {p.sabor}
+                        </td>
+                        <td className="p-4 text-right text-green-400 font-medium">
+                          R$ {p.produtos.preco.toFixed(2).replace('.', ',')}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            p.quantidade > 10 
+                              ? 'bg-green-500/20 text-green-300' 
+                              : p.quantidade > 0 
+                              ? 'bg-yellow-500/20 text-yellow-300' 
+                              : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            {p.quantidade}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <input
+                            type="number"
+                            min={0}
+                            max={p.quantidade}
+                            value={quantidades[p.id] || 0}
+                            onChange={e => {
+                              const valor = parseInt(e.target.value) || 0
+                              handleQuantidadeChange(p.id, valor)
+                            }}
+                            className="w-20 text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-      {produtosSabores.length === 0 ? (
-        <div className="bg-yellow-600 text-white p-4 rounded mb-4">
-          <p className="font-semibold">Nenhum produto disponível</p>
-          <p className="text-sm">Não há produtos com estoque para venda no momento.</p>
-        </div>
-      ) : (
-        <>
-          <table className="w-full border-collapse border border-gray-300 mb-4">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 p-2 text-left">Produto</th>
-                <th className="border border-gray-300 p-2 text-right">Preço</th>
-                <th className="border border-gray-300 p-2 text-center">Estoque</th>
-                <th className="border border-gray-300 p-2 text-center">Quantidade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {produtosSabores.map(p => (
-                <tr key={p.id}>
-                  <td className="border border-gray-300 p-2">{p.produtos.nome} - {p.sabor}</td>
-                  <td className="border border-gray-300 p-2 text-right">R$ {p.produtos.preco.toFixed(2)}</td>
-                  <td className="border border-gray-300 p-2 text-center">{p.quantidade}</td>
-                  <td className="border border-gray-300 p-2 text-center">
-                    <input
-                      type="number"
-                      min={0}
-                      max={p.quantidade}
-                      value={quantidades[p.id] || 0}
-                      onChange={e => {
-                        const valor = parseInt(e.target.value) || 0
-                        handleQuantidadeChange(p.id, valor)
-                      }}
-                      className="w-16 text-center border rounded"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            {/* Resumo da Venda */}
+            {Object.keys(quantidades).some(id => quantidades[parseInt(id)] > 0) && (
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mr-3">
+                    <span className="text-lg">💰</span>
+                  </div>
+                  Resumo da Venda
+                </h3>
+                <div className="space-y-2">
+                  {produtosSabores
+                    .filter(p => quantidades[p.id] > 0)
+                    .map(p => (
+                      <div key={p.id} className="flex justify-between text-gray-300">
+                        <span>{p.produtos.nome} - {p.sabor} ({quantidades[p.id]}x)</span>
+                        <span className="text-green-400 font-medium">
+                          R$ {(p.produtos.preco * quantidades[p.id]).toFixed(2).replace('.', ',')}
+                        </span>
+                      </div>
+                    ))}
+                  <div className="border-t border-white/10 pt-2 mt-4">
+                    <div className="flex justify-between text-lg font-semibold">
+                      <span className="text-white">Total:</span>
+                      <span className="text-green-400">
+                        R$ {produtosSabores
+                          .reduce((total, p) => total + (p.produtos.preco * (quantidades[p.id] || 0)), 0)
+                          .toFixed(2)
+                          .replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-          <button
-            disabled={!podeVender() || loading}
-            onClick={handleCadastrarVenda}
-            className={`w-full py-2 rounded text-white ${
-              podeVender() && !loading ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {loading ? 'Cadastrando...' : 'Cadastrar Venda'}
-          </button>
-        </>
-      )}
-    </div>
+            {/* Botão de Finalizar */}
+            <button
+              disabled={!podeVender() || loading}
+              onClick={handleCadastrarVenda}
+              className={`w-full py-4 rounded-xl text-white font-semibold text-lg transition-all duration-300 transform ${
+                podeVender() && !loading 
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:scale-[1.02] shadow-lg hover:shadow-xl' 
+                  : 'bg-gray-600 cursor-not-allowed opacity-50'
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processando Venda...
+                </div>
+              ) : (
+                '✅ Finalizar Venda'
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+    </Layout>
   )
 }
