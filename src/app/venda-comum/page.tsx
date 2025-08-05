@@ -44,7 +44,7 @@ export default function VendaComum() {
       }
 
       // Ordenar por produto e sabor
-      const dadosOrdenados = (data as any[]).sort((a: any, b: any) => {
+      const dadosOrdenados = (data as unknown as ProdutoSabor[]).sort((a: ProdutoSabor, b: ProdutoSabor) => {
         const nomeComparacao = a.produtos.nome.localeCompare(b.produtos.nome)
         if (nomeComparacao !== 0) return nomeComparacao
         return a.sabor.localeCompare(b.sabor)

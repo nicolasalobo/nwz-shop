@@ -9,15 +9,17 @@ interface Venda {
   usuario_email: string
   total: number
   data_hora: string
-  itens_venda: {
-    produto_id: number
-    quantidade: number
-    preco_unitario: number
-    produtos: {
-      nome: string
-      preco: number
-    }
-  }[]
+  itens_venda: ItemVenda[]
+}
+
+interface ItemVenda {
+  produto_id: number
+  quantidade: number
+  preco_unitario: number
+  produtos: {
+    nome: string
+    preco: number
+  }
 }
 
 export default function HistoricoVendas() {
@@ -51,7 +53,7 @@ export default function HistoricoVendas() {
       if (error) {
         console.error('Erro ao carregar vendas:', error)
       } else {
-        setVendas(data as any || [])
+        setVendas(data as unknown as Venda[] || [])
       }
       
       setLoading(false)
@@ -71,7 +73,7 @@ export default function HistoricoVendas() {
     })
   }
 
-  const renderizarProdutos = (itensVenda: any[]) => {
+  const renderizarProdutos = (itensVenda: ItemVenda[]) => {
     return (
       <div className="text-sm space-y-1">
         {itensVenda.map((item, index) => (

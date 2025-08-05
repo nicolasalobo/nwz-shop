@@ -61,7 +61,7 @@ export default function PainelPrincipal() {
       const produtosAgrupados: Record<string, { itens: string[], preco: number }> = {}
       
       produtosSabores.forEach(item => {
-        const produto = item.produtos as any // Forçar tipo para acessar propriedades aninhadas
+        const produto = item.produtos as unknown as { nome: string; preco: number } // Type assertion para acessar propriedades aninhadas
         const produtoNome = produto.nome
         const sabor = item.sabor
         

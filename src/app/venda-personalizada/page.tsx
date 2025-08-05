@@ -49,7 +49,7 @@ export default function VendaPersonalizadaPage() {
           return
         }
 
-        setProdutosSabores((data as any[]) || [])
+        setProdutosSabores((data as unknown as ProdutoSabor[]) || [])
       } catch (e) {
         console.error('Erro inesperado ao carregar produtos:', e)
         setMensagem(`Erro inesperado ao carregar produtos: ${e instanceof Error ? e.message : 'Erro desconhecido'}`)
@@ -78,32 +78,23 @@ export default function VendaPersonalizadaPage() {
     }
     
     try {
-      // Preparar dados da venda
-      const produtoVenda = {
-        id: produtoSabor.id,
-        nome: `${produtoSabor.produtos.nome} - ${produtoSabor.sabor}`,
-        preco_original: produtoSabor.produtos.preco,
-        preco_personalizado: precoPersonalizado,
-        quantidade: 1,
-        subtotal: precoPersonalizado
-      }
-
-      // Registrar venda na tabela vendas
-      const { data: vendaData, error } = await supabase
+      // Preparar dados da venda para inserção direta no banco
+      const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
-          usuario_email: 'usuario@sistema.com', // Você pode ajustar isso depois
+          usuario_email: 'admin@sistema.com',
           total: precoPersonalizado
         })
-        .select()
+        .select('id')
+        .single()
 
-      if (error || !vendaData || vendaData.length === 0) {
-        console.error('Erro ao registrar venda:', error)
-        setMensagem(`Erro ao registrar venda: ${error?.message}`)
+      if (vendaError || !vendaData) {
+        console.error('Erro ao registrar venda:', vendaError)
+        setMensagem(`Erro ao registrar venda: ${vendaError?.message}`)
         return
       }
 
-      const vendaId = vendaData[0].id
+      const vendaId = vendaData.id
 
       // Registrar item da venda
       const { error: itemError } = await supabase

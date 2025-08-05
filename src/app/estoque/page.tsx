@@ -22,8 +22,8 @@ export default function GerenciarEstoque() {
   const router = useRouter()
   const [produtosSabores, setProdutosSabores] = useState<ProdutoSabor[]>([])
   const [loading, setLoading] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [carregando, setCarregando] = useState(false)
-  const [adicionando, setAdicionando] = useState(false)
   const [editando, setEditando] = useState<number | null>(null)
   const [itemEditando, setItemEditando] = useState<ProdutoSabor | null>(null)
   const [novoNome, setNovoNome] = useState('')
@@ -60,7 +60,7 @@ export default function GerenciarEstoque() {
       setMsg(`Erro ao carregar estoque: ${error.message}`)
     } else {
       // Ordenar no frontend
-      const dadosOrdenados = (data as any || []).sort((a: any, b: any) => {
+      const dadosOrdenados = (data as unknown as ProdutoSabor[] || []).sort((a: ProdutoSabor, b: ProdutoSabor) => {
         const nomeComparacao = a.produtos.nome.localeCompare(b.produtos.nome)
         if (nomeComparacao !== 0) return nomeComparacao
         return a.sabor.localeCompare(b.sabor)
@@ -79,7 +79,7 @@ export default function GerenciarEstoque() {
     setCarregando(true)
     try {
       // Primeiro, verificar se o produto já existe
-      const { data: produtoExistente, error: errorBusca } = await supabase
+      const { data: produtoExistente } = await supabase
         .from('produtos')
         .select('id')
         .eq('nome', novoNome.trim())
@@ -174,7 +174,6 @@ export default function GerenciarEstoque() {
       setNovoSabor('')
       setNovoPreco('')
       setNovaQuantidade('')
-      setAdicionando(false)
     } catch (error) {
       console.error('Erro ao adicionar produto:', error)
       alert('Erro ao adicionar produto')
@@ -296,6 +295,7 @@ export default function GerenciarEstoque() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const atualizarProdutoSabor = async (produtoSabor: ProdutoSabor, novoSabor: string, novaQuantidadeNum: number) => {
     try {
       // Atualizar produto se necessário
@@ -328,6 +328,7 @@ export default function GerenciarEstoque() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const removerProdutoSabor = async (produtoSaborId: number) => {
     if (!confirm('Tem certeza que deseja remover este sabor?')) return
 
@@ -499,13 +500,6 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
     if (!sabor.trim()) {
       alert('Digite um sabor válido')
       return
-    }
-
-    // Atualizar o item com os novos valores
-    const itemAtualizado = {
-      ...item,
-      produtos: { ...item.produtos, nome, preco: precoNum },
-      sabor: sabor.trim()
     }
 
     onSave(sabor.trim(), quantidadeNum)
