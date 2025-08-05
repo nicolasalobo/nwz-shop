@@ -20,12 +20,21 @@ export default function LoginPage() {
     setCarregando(true)
     setErro('')
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha })
-    
-    if (error) {
-      setErro('Credenciais inválidas. Verifique seu e-mail e senha.')
-    } else {
-      router.push('/painel')
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password: senha 
+      })
+      
+      if (error) {
+        console.error('Erro de autenticação:', error)
+        setErro(`Credenciais inválidas. Verifique seus dados ou contate o administrador.`)
+      } else {
+        router.push('/painel')
+      }
+    } catch (err) {
+      console.error('Erro no login:', err)
+      setErro('Erro de conexão. Verifique sua internet e tente novamente.')
     }
     
     setCarregando(false)
