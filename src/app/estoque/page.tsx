@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getSaldo } from '@/lib/getSaldo'
 import Layout from '@/components/Layout'
 
 interface Produto {
@@ -29,16 +30,29 @@ export default function GerenciarEstoque() {
   const [itemEditando, setItemEditando] = useState<ProdutoSabor | null>(null)
   const [novoNome, setNovoNome] = useState('')
   const [novoPreco, setNovoPreco] = useState('')
+  const [novoCusto, setNovoCusto] = useState('')
   const [novoSabor, setNovoSabor] = useState('')
   const [novaQuantidade, setNovaQuantidade] = useState('')
   const [msg, setMsg] = useState('')
+  const [saldoAtual, setSaldoAtual] = useState(0)
 
   const precoNum = parseFloat(novoPreco) || 0
+  const custoNum = parseFloat(novoCusto) || 0
   const quantidadeNum = parseInt(novaQuantidade) || 0
 
   useEffect(() => {
     carregarEstoque()
+    carregarSaldo()
   }, [])
+
+  const carregarSaldo = async () => {
+    try {
+      const saldo = await getSaldo()
+      setSaldoAtual(saldo)
+    } catch (error) {
+      console.error('Erro ao carregar saldo:', error)
+    }
+  }
 
   const carregarEstoque = async () => {
     setLoading(true)
@@ -72,9 +86,20 @@ export default function GerenciarEstoque() {
   }
 
   const adicionarProduto = async () => {
-    if (!novoNome.trim() || !novoSabor.trim() || precoNum <= 0 || quantidadeNum < 0) {
+    if (!novoNome.trim() || !novoSabor.trim() || precoNum <= 0 || custoNum < 0 || quantidadeNum < 0) {
       alert('Por favor, preencha todos os campos corretamente')
       return
+    }
+
+    // Verificar se o saldo ficará negativo e pedir confirmação
+    const custoTotal = custoNum * quantidadeNum
+    const saldoAposCompra = saldoAtual - custoTotal
+    
+    if (saldoAposCompra < 0) {
+      const confirmar = confirm(
+        `Esta compra deixará seu saldo negativo (R$ ${saldoAposCompra.toFixed(2).replace('.', ',')}).\n\nDeseja continuar mesmo assim?`
+      )
+      if (!confirmar) return
     }
 
     setCarregando(true)
@@ -170,10 +195,49 @@ export default function GerenciarEstoque() {
         }
       }
 
+      // Deduzir o custo do saldo
+      const custoTotal = custoNum * quantidadeNum
+      if (custoTotal > 0) {
+        // Consultar saldo atual
+        const { data: saldoAtual, error: consultaSaldoError } = await supabase
+          .from('configuracoes')
+          .select('valor')
+          .eq('chave', 'saldo')
+          .single()
+
+        if (consultaSaldoError) {
+          console.error('Erro ao consultar saldo:', consultaSaldoError)
+          alert(`Erro ao consultar saldo: ${consultaSaldoError.message}`)
+          return
+        }
+
+        const novoSaldo = parseFloat(saldoAtual.valor || '0') - custoTotal
+        const { error: saldoError } = await supabase
+          .from('configuracoes')
+          .update({ valor: novoSaldo.toString() })
+          .eq('chave', 'saldo')
+
+        if (saldoError) {
+          console.error('Erro ao atualizar saldo:', saldoError)
+          alert(`Erro ao atualizar saldo: ${saldoError.message}`)
+          return
+        }
+      }
+
       await carregarEstoque()
+      await carregarSaldo() // Atualizar saldo após adicionar produto
+      
+      // Mensagem de sucesso
+      if (custoTotal > 0) {
+        alert(`Produto adicionado com sucesso!\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}\nNovo saldo: R$ ${(saldoAtual - custoTotal).toFixed(2).replace('.', ',')}`)
+      } else {
+        alert('Produto adicionado com sucesso!')
+      }
+      
       setNovoNome('')
       setNovoSabor('')
       setNovoPreco('')
+      setNovoCusto('')
       setNovaQuantidade('')
     } catch (error) {
       console.error('Erro ao adicionar produto:', error)
@@ -366,6 +430,23 @@ export default function GerenciarEstoque() {
           </div>
         )}
 
+        {/* Saldo Atual */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                <span className="text-lg">💰</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white">Saldo Disponível</h3>
+            </div>
+            <div className={`text-2xl font-bold ${
+              saldoAtual >= 0 ? 'text-green-400' : 'text-red-400'
+            }`}>
+              R$ {saldoAtual.toFixed(2).replace('.', ',')}
+            </div>
+          </div>
+        </div>
+
         {/* Adicionar novo produto */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center">
@@ -374,7 +455,7 @@ export default function GerenciarEstoque() {
             </div>
             Adicionar Novo Produto/Sabor
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Nome do Produto</label>
               <input
@@ -386,7 +467,7 @@ export default function GerenciarEstoque() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Preço</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Preço de Venda</label>
               <input
                 type="number"
                 step="0.01"
@@ -394,6 +475,17 @@ export default function GerenciarEstoque() {
                 value={novoPreco}
                 onChange={(e) => setNovoPreco(e.target.value)}
                 className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Preço de Custo</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={novoCusto}
+                onChange={(e) => setNovoCusto(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
               />
             </div>
             <div>
@@ -426,6 +518,42 @@ export default function GerenciarEstoque() {
               </button>
             </div>
           </div>
+          
+          {/* Preview do custo total */}
+          {custoNum > 0 && quantidadeNum > 0 && (
+            <div className="mt-4 p-4 bg-red-500/10 border border-red-400/30 rounded-lg">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Saldo atual:</span>
+                  <span className="text-white font-semibold">
+                    R$ {saldoAtual.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-red-300">Custo total a ser deduzido:</span>
+                  <span className="text-red-400 font-semibold">
+                    - R$ {(custoNum * quantidadeNum).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t border-red-400/30 pt-2">
+                  <span className="text-gray-300">Saldo após compra:</span>
+                  <span className={`font-semibold ${
+                    (saldoAtual - (custoNum * quantidadeNum)) >= 0 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                  }`}>
+                    R$ {(saldoAtual - (custoNum * quantidadeNum)).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                {(saldoAtual - (custoNum * quantidadeNum)) < 0 && (
+                  <div className="text-red-300 text-xs mt-2 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    Atenção: Esta compra resultará em saldo negativo!
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Lista de produtos */}
