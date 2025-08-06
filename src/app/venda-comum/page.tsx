@@ -9,7 +9,7 @@ interface ProdutoSabor {
   produto_id: number
   sabor: string
   quantidade: number
-  produtos: {
+  produtos?: {
     id: number
     nome: string
     preco: number
@@ -39,17 +39,28 @@ export default function VendaComum() {
         `)
         .gt('quantidade', 0) // Apenas sabores com estoque > 0
 
-      if (error || !data) {
-        setMsg('Erro ao carregar produtos.')
+      if (error) {
+        console.error('Erro ao carregar produto_sabores:', error)
+        setMsg(`Erro ao carregar produtos: ${error.message}`)
         return
       }
 
+      if (!data || data.length === 0) {
+        setMsg('Nenhum produto com estoque disponível.')
+        return
+      }
+
+      // Log para debug
+      console.log('Dados carregados:', data)
+
       // Ordenar por produto e sabor
-      const dadosOrdenados = (data as unknown as ProdutoSabor[]).sort((a: ProdutoSabor, b: ProdutoSabor) => {
-        const nomeComparacao = a.produtos.nome.localeCompare(b.produtos.nome)
-        if (nomeComparacao !== 0) return nomeComparacao
-        return a.sabor.localeCompare(b.sabor)
-      })
+      const dadosOrdenados = (data as unknown as ProdutoSabor[])
+        .filter(item => item.produtos) // Garantir que produtos existe
+        .sort((a: ProdutoSabor, b: ProdutoSabor) => {
+          const nomeComparacao = a.produtos!.nome.localeCompare(b.produtos!.nome)
+          if (nomeComparacao !== 0) return nomeComparacao
+          return a.sabor.localeCompare(b.sabor)
+        })
 
       setProdutosSabores(dadosOrdenados)
 
@@ -96,26 +107,21 @@ export default function VendaComum() {
       for (const produto of produtosParaVenda) {
         const quantidade = quantidades[produto.id]
         if (quantidade > (produto.quantidade ?? 0)) {
-          setMsg(`Estoque insuficiente para ${produto.produtos.nome} - ${produto.sabor}. Disponível: ${produto.quantidade}`)
+          setMsg(`Estoque insuficiente para ${produto.produtos?.nome || 'Produto'} - ${produto.sabor}. Disponível: ${produto.quantidade}`)
           setLoading(false)
           return
         }
       }
 
-      // Calcula total e prepara produtos para o JSON
+      // Calcula total
       let total = 0
-      const produtosVenda = produtosParaVenda.map(p => {
+      for (const p of produtosParaVenda) {
         const quantidade = quantidades[p.id]
-        const subtotal = p.produtos.preco * quantidade
-        total += subtotal
-        return {
-          id: p.id,
-          nome: `${p.produtos.nome} - ${p.sabor}`,
-          preco: p.produtos.preco,
-          quantidade,
-          subtotal
+        if (p.produtos) {
+          const subtotal = p.produtos.preco * quantidade
+          total += subtotal
         }
-      })
+      }
 
       // Registrar venda na tabela vendas
       const { data: vendaData, error: vendaError } = await supabase
@@ -136,11 +142,11 @@ export default function VendaComum() {
       const vendaId = vendaData[0].id
 
       // Registrar itens da venda
-      const itensVenda = produtosVenda.map(produto => ({
+      const itensVenda = produtosParaVenda.map(p => ({
         venda_id: vendaId,
-        produto_id: produto.id,
-        quantidade: produto.quantidade,
-        preco_unitario: produto.preco
+        produto_id: p.produto_id,
+        quantidade: quantidades[p.id],
+        preco_unitario: p.produtos?.preco || 0
       }))
 
       const { error: itensError } = await supabase
@@ -155,12 +161,14 @@ export default function VendaComum() {
       }
 
       // Atualizar estoque (em ambas as tabelas para compatibilidade)
-      for (const produto of produtosVenda) {
+      for (const produtoSabor of produtosParaVenda) {
+        const quantidadeVendida = quantidades[produtoSabor.id]
+        
         // 1. Atualizar tabela estoque (antiga - usada pelas vendas)
         const { data: estoqueAtual, error: consultaError } = await supabase
           .from('estoque')
           .select('quantidade')
-          .eq('produto_id', produto.id)
+          .eq('produto_id', produtoSabor.produto_id)
           .single()
 
         if (consultaError) {
@@ -170,11 +178,11 @@ export default function VendaComum() {
           return
         }
 
-        const novaQuantidadeEstoque = estoqueAtual.quantidade - produto.quantidade
+        const novaQuantidadeEstoque = estoqueAtual.quantidade - quantidadeVendida
         const { error: estoqueError } = await supabase
           .from('estoque')
           .update({ quantidade: novaQuantidadeEstoque })
-          .eq('produto_id', produto.id)
+          .eq('produto_id', produtoSabor.produto_id)
 
         if (estoqueError) {
           console.error('Erro ao atualizar estoque:', estoqueError)
@@ -183,30 +191,18 @@ export default function VendaComum() {
           return
         }
 
-        // 2. Atualizar também produto_sabores (nova estrutura)
-        // Buscar sabores do produto para distribuir a redução
-        const { data: saboresProduto } = await supabase
+        // 2. Atualizar produto_sabores específico (nova estrutura)
+        const novaQuantidadeSabor = produtoSabor.quantidade - quantidadeVendida
+        const { error: saborError } = await supabase
           .from('produto_sabores')
-          .select('id, quantidade, sabor')
-          .eq('produto_id', produto.id)
-          .order('quantidade', { ascending: false }) // Começar pelos com mais estoque
+          .update({ quantidade: novaQuantidadeSabor })
+          .eq('id', produtoSabor.id)
 
-        if (saboresProduto && saboresProduto.length > 0) {
-          let quantidadeRestante = produto.quantidade
-          
-          for (const sabor of saboresProduto) {
-            if (quantidadeRestante <= 0) break
-            
-            const reduzir = Math.min(sabor.quantidade, quantidadeRestante)
-            const novaQuantidadeSabor = sabor.quantidade - reduzir
-            
-            await supabase
-              .from('produto_sabores')
-              .update({ quantidade: novaQuantidadeSabor })
-              .eq('id', sabor.id)
-            
-            quantidadeRestante -= reduzir
-          }
+        if (saborError) {
+          console.error('Erro ao atualizar sabor no estoque:', saborError)
+          setMsg(`Erro ao atualizar sabor no estoque: ${saborError.message}`)
+          setLoading(false)
+          return
         }
       }
 
@@ -319,13 +315,15 @@ export default function VendaComum() {
                     </tr>
                   </thead>
                   <tbody>
-                    {produtosSabores.map(p => (
+                    {produtosSabores
+                      .filter(p => p.produtos) // Garantir que produtos existe
+                      .map(p => (
                       <tr key={p.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
                         <td className="p-4 text-white font-medium">
-                          {p.produtos.nome} - {p.sabor}
+                          {p.produtos?.nome || 'Nome não disponível'} - {p.sabor}
                         </td>
                         <td className="p-4 text-right text-green-400 font-medium">
-                          R$ {p.produtos.preco.toFixed(2).replace('.', ',')}
+                          R$ {(p.produtos?.preco || 0).toFixed(2).replace('.', ',')}
                         </td>
                         <td className="p-4 text-center">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -369,12 +367,12 @@ export default function VendaComum() {
                 </h3>
                 <div className="space-y-2">
                   {produtosSabores
-                    .filter(p => quantidades[p.id] > 0)
+                    .filter(p => quantidades[p.id] > 0 && p.produtos)
                     .map(p => (
                       <div key={p.id} className="flex justify-between text-gray-300">
-                        <span>{p.produtos.nome} - {p.sabor} ({quantidades[p.id]}x)</span>
+                        <span>{p.produtos?.nome || 'Nome não disponível'} - {p.sabor} ({quantidades[p.id]}x)</span>
                         <span className="text-green-400 font-medium">
-                          R$ {(p.produtos.preco * quantidades[p.id]).toFixed(2).replace('.', ',')}
+                          R$ {((p.produtos?.preco || 0) * quantidades[p.id]).toFixed(2).replace('.', ',')}
                         </span>
                       </div>
                     ))}
@@ -383,7 +381,8 @@ export default function VendaComum() {
                       <span className="text-white">Total:</span>
                       <span className="text-green-400">
                         R$ {produtosSabores
-                          .reduce((total, p) => total + (p.produtos.preco * (quantidades[p.id] || 0)), 0)
+                          .filter(p => p.produtos)
+                          .reduce((total, p) => total + ((p.produtos?.preco || 0) * (quantidades[p.id] || 0)), 0)
                           .toFixed(2)
                           .replace('.', ',')}
                       </span>

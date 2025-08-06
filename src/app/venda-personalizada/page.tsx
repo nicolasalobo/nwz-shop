@@ -11,7 +11,7 @@ type ProdutoSabor = {
   produto_id: number
   sabor: string
   quantidade: number
-  produtos: {
+  produtos?: {
     id: number
     nome: string
     preco: number
@@ -221,9 +221,11 @@ export default function VendaPersonalizadaPage() {
                   onChange={(e) => setIdSelecionado(Number(e.target.value))}
                 >
                   <option value="" className="bg-gray-800">Selecione um produto</option>
-                  {produtosSabores.map((produtoSabor) => (
+                  {produtosSabores
+                    .filter(produtoSabor => produtoSabor.produtos)
+                    .map((produtoSabor) => (
                     <option key={produtoSabor.id} value={produtoSabor.id} className="bg-gray-800">
-                      {produtoSabor.produtos.nome} - {produtoSabor.sabor} (Estoque: {produtoSabor.quantidade})
+                      {produtoSabor.produtos!.nome} - {produtoSabor.sabor} (Estoque: {produtoSabor.quantidade})
                     </option>
                   ))}
                 </select>
@@ -266,20 +268,22 @@ export default function VendaPersonalizadaPage() {
               </div>
 
               {/* Preview da Venda */}
-              {idSelecionado && preco && (
+              {idSelecionado && preco && (() => {
+                const produtoSelecionado = produtosSabores.find(p => p.id === idSelecionado)
+                return produtoSelecionado?.produtos ? (
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
                   <h4 className="font-medium text-white mb-2">Preview da Venda:</h4>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-300">Produto:</span>
                       <span className="text-white">
-                        {produtosSabores.find(p => p.id === idSelecionado)?.produtos.nome} - {produtosSabores.find(p => p.id === idSelecionado)?.sabor}
+                        {produtoSelecionado.produtos.nome} - {produtoSelecionado.sabor}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Preço original:</span>
                       <span className="text-gray-400 line-through">
-                        R$ {produtosSabores.find(p => p.id === idSelecionado)?.produtos.preco.toFixed(2).replace('.', ',')}
+                        R$ {produtoSelecionado.produtos.preco.toFixed(2).replace('.', ',')}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -290,7 +294,8 @@ export default function VendaPersonalizadaPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                ) : null
+              })()}
 
               {/* Botão de Registrar */}
               <button
