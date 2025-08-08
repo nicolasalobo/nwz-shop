@@ -84,7 +84,8 @@ export default function VendaPersonalizadaPage() {
         .from('vendas')
         .insert({
           usuario_email: 'admin@sistema.com',
-          total: precoPersonalizado
+          total: precoPersonalizado,
+          observacoes: descricao // Salvar o motivo da venda personalizada
         })
         .select('id')
         .single()

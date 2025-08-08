@@ -10,6 +10,7 @@ interface Venda {
   usuario_email: string
   total: number
   data_hora: string
+  observacoes?: string
   itens_venda: ItemVenda[]
 }
 
@@ -39,6 +40,7 @@ export default function HistoricoVendas() {
           usuario_email,
           total,
           data_hora,
+          observacoes,
           itens_venda!inner (
             produto_id,
             quantidade,
@@ -171,8 +173,12 @@ export default function HistoricoVendas() {
                     {/* Informações básicas */}
                     <div>
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-                          Venda #{venda.id}
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                          venda.observacoes 
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' 
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        }`}>
+                          {venda.observacoes ? '✨ Personalizada' : `Venda`} #{venda.id}
                         </span>
                       </div>
                       <div className="text-sm text-gray-300">
@@ -188,6 +194,23 @@ export default function HistoricoVendas() {
                       <div className="space-y-2">
                         <h4 className="font-medium text-white text-sm">Produtos:</h4>
                         {renderizarProdutos(venda.itens_venda)}
+                        
+                        {/* Observações da venda personalizada */}
+                        {venda.observacoes && (
+                          <div className="mt-3 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg">
+                            <div className="flex items-start space-x-2">
+                              <span className="text-purple-400 text-sm">✨</span>
+                              <div>
+                                <div className="text-xs text-purple-300 font-medium mb-1">
+                                  Venda Personalizada
+                                </div>
+                                <div className="text-sm text-gray-300">
+                                  {venda.observacoes}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
