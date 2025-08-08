@@ -33,30 +33,59 @@ export default function HistoricoVendas() {
     async function carregarVendas() {
       setLoading(true)
       
-      const { data, error } = await supabase
-        .from('vendas')
-        .select(`
-          id,
-          usuario_email,
-          total,
-          data_hora,
-          observacoes,
-          itens_venda!inner (
-            produto_id,
-            quantidade,
-            preco_unitario,
-            produtos!inner (
-              nome,
-              preco
+      try {
+        // Primeiro tentar sem observações
+        const { data, error } = await supabase
+          .from('vendas')
+          .select(`
+            id,
+            usuario_email,
+            total,
+            data_hora,
+            itens_venda!inner (
+              produto_id,
+              quantidade,
+              preco_unitario,
+              produtos!inner (
+                nome,
+                preco
+              )
             )
-          )
-        `)
-        .order('data_hora', { ascending: false })
+          `)
+          .order('data_hora', { ascending: false })
 
-      if (error) {
-        console.error('Erro ao carregar vendas:', error)
-      } else {
-        setVendas(data as unknown as Venda[] || [])
+        if (error) {
+          console.error('Erro ao carregar vendas:', error)
+          setVendas([])
+        } else {
+          // Tentar buscar observações separadamente para vendas existentes
+          const vendasComObservacoes = await Promise.all(
+            data.map(async (venda) => {
+              try {
+                const { data: vendaComObs } = await supabase
+                  .from('vendas')
+                  .select('observacoes')
+                  .eq('id', venda.id)
+                  .single()
+                
+                return {
+                  ...venda,
+                  observacoes: vendaComObs?.observacoes || null
+                }
+              } catch {
+                return {
+                  ...venda,
+                  observacoes: null
+                }
+              }
+            })
+          )
+          
+          setVendas(vendasComObservacoes as unknown as Venda[] || [])
+        }
+      } catch (err) {
+        console.error('Erro inesperado:', err)
+        setVendas([])
       }
       
       setLoading(false)
@@ -67,7 +96,7 @@ export default function HistoricoVendas() {
 
   const formatarData = (dataString: string) => {
     const data = new Date(dataString)
-    return data.toLocaleDateString('pt-BR', {
+    return data.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -76,25 +105,13 @@ export default function HistoricoVendas() {
     })
   }
 
-  const renderizarProdutos = (itensVenda: ItemVenda[]) => {
+  const renderizarProdutos = (itens: ItemVenda[]) => {
     return (
       <div className="space-y-1">
-        {itensVenda.map((item, index) => (
-          <div key={index} className="text-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-white">{item.produtos.nome}</span>
-              <span className="text-green-400">
-                R$ {(item.quantidade * item.preco_unitario).toFixed(2).replace('.', ',')}
-              </span>
-            </div>
-            <div className="text-gray-400 text-xs">
-              Qtd: {item.quantidade} x R$ {item.preco_unitario.toFixed(2).replace('.', ',')}
-              {item.preco_unitario !== item.produtos.preco && (
-                <span className="text-blue-400 ml-2">
-                  (Original: R$ {item.produtos.preco.toFixed(2).replace('.', ',')})
-                </span>
-              )}
-            </div>
+        {itens.map((item, index) => (
+          <div key={index} className="flex justify-between text-sm text-gray-300">
+            <span>• {item.produtos.nome} ({item.quantidade}x)</span>
+            <span>R$ {(item.preco_unitario * item.quantidade).toFixed(2).replace('.', ',')}</span>
           </div>
         ))}
       </div>
@@ -178,7 +195,7 @@ export default function HistoricoVendas() {
                             ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' 
                             : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
                         }`}>
-                          {venda.observacoes ? '✨ Personalizada' : `Venda`} #{venda.id}
+                          {venda.observacoes ? '✨ Personalizada' : 'Venda'} #{venda.id}
                         </span>
                       </div>
                       <div className="text-sm text-gray-300">
@@ -194,23 +211,6 @@ export default function HistoricoVendas() {
                       <div className="space-y-2">
                         <h4 className="font-medium text-white text-sm">Produtos:</h4>
                         {renderizarProdutos(venda.itens_venda)}
-                        
-                        {/* Observações da venda personalizada */}
-                        {venda.observacoes && (
-                          <div className="mt-3 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg">
-                            <div className="flex items-start space-x-2">
-                              <span className="text-purple-400 text-sm">✨</span>
-                              <div>
-                                <div className="text-xs text-purple-300 font-medium mb-1">
-                                  Venda Personalizada
-                                </div>
-                                <div className="text-sm text-gray-300">
-                                  {venda.observacoes}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
 
@@ -224,6 +224,23 @@ export default function HistoricoVendas() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Motivo da venda personalizada - ocupando toda a largura */}
+                  {venda.observacoes && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-purple-600/10 border border-purple-400/30 rounded-lg">
+                      <div className="flex items-start space-x-3">
+                        <span className="text-purple-400 text-lg">✨</span>
+                        <div className="flex-1">
+                          <div className="text-sm text-purple-300 font-medium mb-2">
+                            Motivo da venda personalizada:
+                          </div>
+                          <div className="text-base text-white bg-purple-500/10 p-3 rounded-md border border-purple-400/20">
+                            {venda.observacoes}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -80,7 +80,7 @@ export default function VendaPersonalizadaPage() {
     
     try {
       // Preparar dados da venda para inserção direta no banco
-      const { data: vendaData, error: vendaError } = await supabase
+      let { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
           usuario_email: 'admin@sistema.com',
@@ -89,6 +89,26 @@ export default function VendaPersonalizadaPage() {
         })
         .select('id')
         .single()
+
+      // Se der erro (provavelmente porque a coluna observacoes não existe),
+      // tentar sem o campo observacoes
+      if (vendaError && vendaError.message.includes('column')) {
+        console.warn('Coluna observacoes não existe, inserindo sem observações:', vendaError)
+        
+        const fallbackInsert = await supabase
+          .from('vendas')
+          .insert({
+            usuario_email: 'admin@sistema.com',
+            total: precoPersonalizado
+          })
+          .select('id')
+          .single()
+          
+        vendaData = fallbackInsert.data
+        vendaError = fallbackInsert.error
+        
+        setMensagem('Venda registrada com sucesso! (Observação: campo de observações não disponível no banco de dados)')
+      }
 
       if (vendaError || !vendaData) {
         console.error('Erro ao registrar venda:', vendaError)
