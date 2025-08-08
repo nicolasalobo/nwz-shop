@@ -60,7 +60,7 @@ export default function VendaPersonalizadaPage() {
   }, [])
 
   async function registrarVenda() {
-    if (!idSelecionado || !preco || !descricao) {
+    if (!idSelecionado || preco === '' || !descricao) {
       setMensagem('Preencha todos os campos.')
       return
     }
@@ -73,8 +73,8 @@ export default function VendaPersonalizadaPage() {
 
     const precoPersonalizado = parseFloat(preco)
     
-    if (isNaN(precoPersonalizado) || precoPersonalizado <= 0) {
-      setMensagem('Digite um preço válido maior que zero.')
+    if (isNaN(precoPersonalizado) || precoPersonalizado < 0) {
+      setMensagem('Digite um preço válido (pode ser R$ 0,00 para consumo próprio).')
       return
     }
     
@@ -250,7 +250,7 @@ export default function VendaPersonalizadaPage() {
                     placeholder="0,00"
                   />
                 </div>
-                <p className="text-gray-400 text-xs mt-1">Defina um preço diferente do padrão</p>
+                <p className="text-gray-400 text-xs mt-1">Defina um preço personalizado (R$ 0,00 para consumo próprio)</p>
               </div>
 
               {/* Descrição do Motivo */}
@@ -262,7 +262,7 @@ export default function VendaPersonalizadaPage() {
                   className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent resize-none"
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Explique o motivo do preço personalizado (ex: promoção, desconto especial, etc.)"
+                  placeholder="Explique o motivo do preço personalizado (ex: promoção, consumo próprio, desconto especial, etc.)"
                   rows={3}
                 />
               </div>
@@ -288,8 +288,15 @@ export default function VendaPersonalizadaPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-300">Preço personalizado:</span>
-                      <span className="text-green-400 font-medium">
+                      <span className={`font-medium ${
+                        parseFloat(preco || '0') === 0 
+                          ? 'text-blue-400' 
+                          : 'text-green-400'
+                      }`}>
                         R$ {parseFloat(preco || '0').toFixed(2).replace('.', ',')}
+                        {parseFloat(preco || '0') === 0 && (
+                          <span className="text-xs text-gray-400 ml-2">(consumo próprio)</span>
+                        )}
                       </span>
                     </div>
                   </div>
@@ -300,9 +307,9 @@ export default function VendaPersonalizadaPage() {
               {/* Botão de Registrar */}
               <button
                 onClick={registrarVenda}
-                disabled={!idSelecionado || !preco || !descricao.trim()}
+                disabled={!idSelecionado || preco === '' || !descricao.trim()}
                 className={`w-full py-4 rounded-xl text-white font-semibold text-lg transition-all duration-300 transform ${
-                  idSelecionado && preco && descricao.trim()
+                  idSelecionado && preco !== '' && descricao.trim()
                     ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 hover:scale-[1.02] shadow-lg hover:shadow-xl'
                     : 'bg-gray-600 cursor-not-allowed opacity-50'
                 }`}
