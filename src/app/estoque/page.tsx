@@ -39,6 +39,13 @@ export default function GerenciarEstoque() {
   const precoNum = parseFloat(novoPreco) || 0
   const custoNum = parseFloat(novoCusto) || 0
   const quantidadeNum = parseInt(novaQuantidade) || 0
+  // Preço sugerido = 1,5x custo, arredondado para cima ao próximo múltiplo de 5
+  const precoSugerido = (() => {
+    if (custoNum <= 0) return 0
+    const base = custoNum * 1.5
+    // Próximo múltiplo de 5 para cima
+    return Math.ceil(base / 5) * 5
+  })()
 
   useEffect(() => {
     carregarEstoque()
@@ -471,7 +478,7 @@ export default function GerenciarEstoque() {
               <input
                 type="number"
                 step="0.01"
-                placeholder="0,00"
+                placeholder={`Sugerido: ${precoSugerido.toFixed(2).replace('.', ',')}`}
                 value={novoPreco}
                 onChange={(e) => setNovoPreco(e.target.value)}
                 className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
