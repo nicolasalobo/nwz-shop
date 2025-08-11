@@ -147,26 +147,34 @@ export default function GerenciarEstoque() {
       // Verificar se o sabor já existe para este produto
       const { data: saborExistente } = await supabase
         .from('produto_sabores')
-        .select('id')
+        .select('id, quantidade')
         .eq('produto_id', produtoId)
         .eq('sabor', novoSabor.trim())
         .single()
 
+      let adicionadoAExistente = false
       if (saborExistente) {
-        alert('Este sabor já existe para este produto!')
-        return
+        // Se sabor já existe, somar a quantidade existente
+        adicionadoAExistente = true
+        const novaQuantidadeTotal = saborExistente.quantidade + quantidadeNum
+        const { error: errorSabor } = await supabase
+          .from('produto_sabores')
+          .update({ quantidade: novaQuantidadeTotal })
+          .eq('id', saborExistente.id)
+
+        if (errorSabor) throw errorSabor
+      } else {
+        // Adicionar novo sabor
+        const { error: errorSabor } = await supabase
+          .from('produto_sabores')
+          .insert([{
+            produto_id: produtoId,
+            sabor: novoSabor.trim(),
+            quantidade: quantidadeNum
+          }])
+
+        if (errorSabor) throw errorSabor
       }
-
-      // Adicionar o sabor
-      const { error: errorSabor } = await supabase
-        .from('produto_sabores')
-        .insert([{
-          produto_id: produtoId,
-          sabor: novoSabor.trim(),
-          quantidade: quantidadeNum
-        }])
-
-      if (errorSabor) throw errorSabor
 
       // Atualizar/criar na tabela estoque para compatibilidade com vendas
       const { data: todosSabores } = await supabase
@@ -243,10 +251,11 @@ export default function GerenciarEstoque() {
       
       // Mensagem de sucesso
       const avisoPreco = usouPrecoSugerido ? '\n(Preço sugerido aplicado automaticamente)' : ''
+      const avisoExistente = adicionadoAExistente ? '\n(Quantidade adicionada ao produto existente)' : ''
       if (custoTotal > 0) {
-        alert(`Produto adicionado com sucesso!${avisoPreco}\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}\nNovo saldo: R$ ${(saldoAtual - custoTotal).toFixed(2).replace('.', ',')}`)
+        alert(`Produto adicionado com sucesso!${avisoPreco}${avisoExistente}\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}\nNovo saldo: R$ ${(saldoAtual - custoTotal).toFixed(2).replace('.', ',')}`)
       } else {
-        alert(`Produto adicionado com sucesso!${avisoPreco}`)
+        alert(`Produto adicionado com sucesso!${avisoPreco}${avisoExistente}`)
       }
       
       setNovoNome('')
@@ -262,11 +271,30 @@ export default function GerenciarEstoque() {
     }
   }
 
-  const editarProduto = async (sabor: string, quantidade: number) => {
+  const editarProduto = async (sabor: string, quantidade: number, custo: number = 0) => {
     if (!itemEditando) return
 
     setCarregando(true)
     try {
+      // Calcular diferença de quantidade para deduzir custo do saldo
+      const diferenca = quantidade - itemEditando.quantidade
+      const custoTotal = custo * diferenca
+
+      // Se há diferença positiva (aumento) e custo > 0, verificar saldo
+      if (diferenca > 0 && custo > 0) {
+        const saldoAposCompra = saldoAtual - custoTotal
+        
+        if (saldoAposCompra < 0) {
+          const confirmar = confirm(
+            `Este aumento deixará seu saldo negativo (R$ ${saldoAposCompra.toFixed(2).replace('.', ',')}).\n\nDeseja continuar mesmo assim?`
+          )
+          if (!confirmar) {
+            setCarregando(false)
+            return
+          }
+        }
+      }
+
       // 1. Atualizar o sabor no produto_sabores
       const { error: errorSabor } = await supabase
         .from('produto_sabores')
@@ -302,6 +330,36 @@ export default function GerenciarEstoque() {
         if (errorEstoque) {
           console.warn('Aviso: Não foi possível atualizar a tabela estoque antiga:', errorEstoque)
         }
+      }
+
+      // Deduzir custo do saldo se houve aumento de quantidade
+      if (diferenca > 0 && custoTotal > 0) {
+        const { data: saldoData, error: consultaSaldoError } = await supabase
+          .from('configuracoes')
+          .select('valor')
+          .eq('chave', 'saldo')
+          .single()
+
+        if (consultaSaldoError) {
+          console.error('Erro ao consultar saldo:', consultaSaldoError)
+          alert(`Erro ao consultar saldo: ${consultaSaldoError.message}`)
+          return
+        }
+
+        const novoSaldo = parseFloat(saldoData.valor || '0') - custoTotal
+        const { error: saldoError } = await supabase
+          .from('configuracoes')
+          .update({ valor: novoSaldo.toString() })
+          .eq('chave', 'saldo')
+
+        if (saldoError) {
+          console.error('Erro ao atualizar saldo:', saldoError)
+          alert(`Erro ao atualizar saldo: ${saldoError.message}`)
+          return
+        }
+
+        await carregarSaldo() // Atualizar saldo na interface
+        alert(`Produto editado com sucesso!\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}`)
       }
 
       await carregarEstoque()
@@ -602,6 +660,7 @@ export default function GerenciarEstoque() {
                     <th className="text-left p-4 text-gray-300 font-medium">Sabor</th>
                     <th className="text-right p-4 text-gray-300 font-medium">Preço</th>
                     <th className="text-center p-4 text-gray-300 font-medium">Quantidade</th>
+                    <th className="text-center p-4 text-gray-300 font-medium">Custo Unit.</th>
                     <th className="text-center p-4 text-gray-300 font-medium">Ações</th>
                   </tr>
                 </thead>
@@ -615,8 +674,8 @@ export default function GerenciarEstoque() {
                         setEditando(item.id)
                         setItemEditando(item)
                       }}
-                      onSave={(sabor, quantidade) => {
-                        editarProduto(sabor, quantidade)
+                      onSave={(sabor, quantidade, custo) => {
+                        editarProduto(sabor, quantidade, custo)
                       }}
                       onCancel={() => {
                         setEditando(null)
@@ -639,7 +698,7 @@ interface EstoqueItemProps {
   item: ProdutoSabor
   editando: boolean
   onEdit: () => void
-  onSave: (sabor: string, quantidade: number) => void
+  onSave: (sabor: string, quantidade: number, custo: number) => void
   onCancel: () => void
   onRemove: () => void
 }
@@ -649,10 +708,12 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
   const [preco, setPreco] = useState(item.produtos.preco.toString())
   const [sabor, setSabor] = useState(item.sabor)
   const [quantidade, setQuantidade] = useState(item.quantidade.toString())
+  const [custo, setCusto] = useState('0')
 
   const handleSave = () => {
     const precoNum = parseFloat(preco)
     const quantidadeNum = parseInt(quantidade)
+    const custoNum = parseFloat(custo)
 
     if (isNaN(precoNum) || precoNum <= 0) {
       alert('Digite um preço válido')
@@ -664,12 +725,17 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
       return
     }
 
+    if (isNaN(custoNum) || custoNum < 0) {
+      alert('Digite um custo válido (pode ser 0)')
+      return
+    }
+
     if (!sabor.trim()) {
       alert('Digite um sabor válido')
       return
     }
 
-    onSave(sabor.trim(), quantidadeNum)
+    onSave(sabor.trim(), quantidadeNum, custoNum)
   }
 
   if (editando) {
@@ -709,6 +775,22 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
           />
         </td>
         <td className="p-4">
+          <input
+            type="number"
+            step="0.01"
+            placeholder="Custo (opcional)"
+            value={custo}
+            onChange={(e) => setCusto(e.target.value)}
+            className="bg-gray-800 border border-gray-600 rounded px-2 py-1 w-full text-center"
+          />
+          <small className="text-gray-400 text-xs block mt-1">
+            {parseInt(quantidade) > item.quantidade && parseFloat(custo) > 0 ? 
+              `Custo do aumento: R$ ${(parseFloat(custo) * (parseInt(quantidade) - item.quantidade)).toFixed(2).replace('.', ',')}` : 
+              'Informar se aumentar'
+            }
+          </small>
+        </td>
+        <td className="p-4">
           <div className="flex gap-2 justify-center">
             <button
               onClick={handleSave}
@@ -743,6 +825,9 @@ function EstoqueItem({ item, editando, onEdit, onSave, onCancel, onRemove }: Est
         }`}>
           {item.quantidade}
         </span>
+      </td>
+      <td className="p-4 text-center text-gray-400 text-sm">
+        -
       </td>
       <td className="p-4">
         <div className="flex gap-2 justify-center">
