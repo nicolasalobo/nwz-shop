@@ -93,7 +93,14 @@ export default function GerenciarEstoque() {
   }
 
   const adicionarProduto = async () => {
-    if (!novoNome.trim() || !novoSabor.trim() || precoNum <= 0 || custoNum < 0 || quantidadeNum < 0) {
+    // Determina preço final: se não informado ou zero e existir preço sugerido positivo, aplica sugestão
+    let precoFinal = precoNum
+    const usouPrecoSugerido = precoFinal <= 0 && precoSugerido > 0
+    if (usouPrecoSugerido) {
+      precoFinal = precoSugerido
+    }
+
+    if (!novoNome.trim() || !novoSabor.trim() || precoFinal <= 0 || custoNum < 0 || quantidadeNum < 0) {
       alert('Por favor, preencha todos os campos corretamente')
       return
     }
@@ -128,7 +135,7 @@ export default function GerenciarEstoque() {
           .from('produtos')
           .insert([{
             nome: novoNome.trim(),
-            preco: precoNum
+            preco: precoFinal
           }])
           .select('id')
           .single()
@@ -235,10 +242,11 @@ export default function GerenciarEstoque() {
       await carregarSaldo() // Atualizar saldo após adicionar produto
       
       // Mensagem de sucesso
+      const avisoPreco = usouPrecoSugerido ? '\n(Preço sugerido aplicado automaticamente)' : ''
       if (custoTotal > 0) {
-        alert(`Produto adicionado com sucesso!\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}\nNovo saldo: R$ ${(saldoAtual - custoTotal).toFixed(2).replace('.', ',')}`)
+        alert(`Produto adicionado com sucesso!${avisoPreco}\nCusto deduzido: R$ ${custoTotal.toFixed(2).replace('.', ',')}\nNovo saldo: R$ ${(saldoAtual - custoTotal).toFixed(2).replace('.', ',')}`)
       } else {
-        alert('Produto adicionado com sucesso!')
+        alert(`Produto adicionado com sucesso!${avisoPreco}`)
       }
       
       setNovoNome('')
