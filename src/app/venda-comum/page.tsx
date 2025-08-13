@@ -165,11 +165,11 @@ export default function VendaComum() {
         const quantidadeVendida = quantidades[produtoSabor.id]
         
         // 1. Atualizar tabela estoque (antiga - usada pelas vendas)
-        const { data: estoqueAtual, error: consultaError } = await supabase
+        const { data: estoqueAtualArray, error: consultaError } = await supabase
           .from('estoque')
           .select('quantidade')
           .eq('produto_id', produtoSabor.produto_id)
-          .single()
+          .limit(1)
 
         if (consultaError) {
           console.error('Erro ao consultar estoque:', consultaError)
@@ -177,7 +177,12 @@ export default function VendaComum() {
           setLoading(false)
           return
         }
-
+        if (!estoqueAtualArray || estoqueAtualArray.length === 0) {
+          setMsg('Nenhum registro de estoque encontrado para o produto.')
+          setLoading(false)
+          return
+        }
+        const estoqueAtual = estoqueAtualArray[0]
         const novaQuantidadeEstoque = estoqueAtual.quantidade - quantidadeVendida
         const { error: estoqueError } = await supabase
           .from('estoque')
