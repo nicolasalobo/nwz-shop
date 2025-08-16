@@ -11,14 +11,21 @@ export default function PainelPrincipal() {
   const [saldo, setSaldo] = useState(0)
   const [msg, setMsg] = useState('')
 
+<<<<<<< HEAD
   // Helper para copiar texto com fallback (navigator.clipboard -> execCommand -> prompt/share)
   const copyTextToClipboard = async (text: string) => {
+=======
+  // Helper para copiar texto com vários fallbacks para dispositivos móveis/webviews
+  const copyTextToClipboard = async (text: string) => {
+    // Tenta Clipboard API moderna
+>>>>>>> bug-fix-mobile
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(text)
         return true
       }
     } catch (err) {
+<<<<<<< HEAD
       // continua para fallback
     }
 
@@ -29,6 +36,18 @@ export default function PainelPrincipal() {
       // evitar scrolling ao focar
       textarea.style.position = 'fixed'
       textarea.style.left = '-9999px'
+=======
+      // pode lançar NotAllowedError ou SecurityError em alguns contextos
+    }
+
+    // Fallback clássico: textarea + execCommand
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      textarea.style.top = '0'
+>>>>>>> bug-fix-mobile
       document.body.appendChild(textarea)
       textarea.focus()
       textarea.select()
@@ -37,6 +56,7 @@ export default function PainelPrincipal() {
       document.body.removeChild(textarea)
       if (successful) return true
     } catch (err) {
+<<<<<<< HEAD
       // segue adiante
     }
 
@@ -46,16 +66,34 @@ export default function PainelPrincipal() {
       if (navigator.share) {
         // tente compartilhar como alternativa (o usuário pode colar em outro app)
         // não await para não bloquear em navegadores que rejeitam
+=======
+      // continuar para próximo fallback
+    }
+
+    // Fallback mobile: tentar navigator.share (apenas disponível em alguns navegadores)
+    try {
+      // @ts-ignore
+      if (navigator.share) {
+        // Tenta abrir o compartilhamento; o usuário pode colar em outro app
+>>>>>>> bug-fix-mobile
         await navigator.share({ text })
         return true
       }
     } catch (err) {
+<<<<<<< HEAD
       // segue para prompt
     }
 
     // Último recurso: abrir prompt com o texto para copiar manualmente
     try {
       // window.prompt permite ao usuário selecionar/colar em dispositivos onde a cópia programática falha
+=======
+      // ignora
+    }
+
+    // Último recurso: prompt para o usuário copiar manualmente
+    try {
+>>>>>>> bug-fix-mobile
       // eslint-disable-next-line no-alert
       window.prompt('Copie o catálogo abaixo (segure e copie no celular):', text)
     } catch (err) {
@@ -179,12 +217,21 @@ export default function PainelPrincipal() {
         }
       })
 
+<<<<<<< HEAD
       // Copiar para área de transferência com fallback
       const copiado = await copyTextToClipboard(catalogo)
       if (copiado) {
         setMsg('Catálogo copiado para área de transferência!')
       } else {
         setMsg('Não foi possível copiar automaticamente. Abra o catálogo e copie manualmente (segure o texto no celular).')
+=======
+      // Copiar para área de transferência com fallbacks
+      const ok = await copyTextToClipboard(catalogo)
+      if (ok) {
+        setMsg('Catálogo copiado para área de transferência!')
+      } else {
+        setMsg('A cópia automática não foi permitida pelo navegador/plataforma. Abra o catálogo e copie manualmente (segure o texto no celular).')
+>>>>>>> bug-fix-mobile
       }
       
       // Limpar mensagem após 3 segundos
