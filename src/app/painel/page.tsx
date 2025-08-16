@@ -10,19 +10,12 @@ export default function PainelPrincipal() {
   const router = useRouter()
   const [saldo, setSaldo] = useState(0)
   const [msg, setMsg] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalText, setModalText] = useState('')
   // Helper para copiar texto com vários fallbacks (clipboard API -> execCommand -> navigator.share -> prompt)
   const copyTextToClipboard = async (text: string) => {
-    // 1) Clipboard API moderno
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text)
-        return true
-      }
-    } catch (err) {
-      // pode lançar NotAllowedError em alguns contextos (ex.: iframed/webview)
-    }
-
-    // 2) Fallback clássico: textarea + execCommand
+    // 1) Tentar primeiro o fallback síncrono (textarea + execCommand).
+    // Em muitos navegadores móveis/webviews isso preserva o contexto de gesto e permite copiar automaticamente.
     try {
       const textarea = document.createElement('textarea')
       textarea.value = text
@@ -36,8 +29,18 @@ export default function PainelPrincipal() {
       const successful = document.execCommand('copy')
       document.body.removeChild(textarea)
       if (successful) return true
-    } catch (err) {
-      // continuar para próximo fallback
+    } catch {
+      // continua para tentar Clipboard API
+    }
+
+    // 2) Clipboard API moderno (assíncrono)
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      // pode lançar NotAllowedError em alguns contextos (ex.: iframed/webview)
     }
 
     // 3) Tentar compartilhar via Web Share API (bom para mobile/webviews)
@@ -49,68 +52,38 @@ export default function PainelPrincipal() {
           return true
         }
       }
-    } catch (err) {
+    } catch {
       // ignora e continua
     }
 
-    // 4) Último recurso: mostrar textarea visível para o usuário copiar manualmente
-    // Isso preserva quebras de linha em webviews e navegadores móveis (diferente de window.prompt)
+  // 4) Último recurso: não abrir UI aqui; o modal React será usado pelo fluxo principal
+  return false
+  }
+
+  const handleModalCopy = () => {
     try {
-      const container = document.createElement('div')
-      container.style.position = 'fixed'
-      container.style.inset = '0'
-      container.style.zIndex = '2147483647'
-      container.style.display = 'flex'
-      container.style.alignItems = 'center'
-      container.style.justifyContent = 'center'
-      container.style.background = 'rgba(0,0,0,0.6)'
-
-      const box = document.createElement('div')
-      box.style.width = '90%'
-      box.style.maxWidth = '640px'
-      box.style.background = '#0b1220'
-      box.style.padding = '12px'
-      box.style.borderRadius = '8px'
-      box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)'
-      box.style.color = '#fff'
-
+      // Criar textarea temporária no DOM, selecionar e copiar de forma síncrona (dentro do clique)
       const textarea = document.createElement('textarea')
-      textarea.value = text
-      textarea.readOnly = true
-      textarea.style.width = '100%'
-      textarea.style.height = '60vh'
-      textarea.style.whiteSpace = 'pre-wrap'
-      textarea.style.background = 'transparent'
-      textarea.style.color = 'inherit'
-      textarea.style.border = '1px solid rgba(255,255,255,0.08)'
-      textarea.style.padding = '8px'
-      textarea.style.fontSize = '14px'
-      textarea.style.borderRadius = '4px'
-      textarea.style.resize = 'vertical'
-      textarea.addEventListener('focus', () => textarea.select())
-
-      const closeBtn = document.createElement('button')
-      closeBtn.textContent = 'Fechar'
-      closeBtn.style.marginTop = '8px'
-      closeBtn.style.padding = '8px 12px'
-      closeBtn.style.border = 'none'
-      closeBtn.style.borderRadius = '6px'
-      closeBtn.style.cursor = 'pointer'
-      closeBtn.onclick = () => {
-        try { document.body.removeChild(container) } catch (e) { /* ignore */ }
-      }
-
-      box.appendChild(textarea)
-      box.appendChild(closeBtn)
-      container.appendChild(box)
-      document.body.appendChild(container)
+      textarea.value = modalText
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      textarea.style.top = '0'
+      document.body.appendChild(textarea)
       textarea.focus()
       textarea.select()
-    } catch (err) {
-      // nada a fazer
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (successful) {
+        setMsg('Catálogo copiado para área de transferência!')
+      } else {
+        setMsg('Não foi possível copiar automaticamente. Selecione e copie manualmente.')
+      }
+    } catch {
+      setMsg('Erro ao copiar automaticamente. Selecione e copie manualmente.')
+    } finally {
+      setModalOpen(false)
+      setTimeout(() => setMsg(''), 3000)
     }
-
-    return false
   }
 
   useEffect(() => {
@@ -232,7 +205,10 @@ export default function PainelPrincipal() {
       if (ok) {
         setMsg('Catálogo copiado para área de transferência!')
       } else {
-        setMsg('A cópia automática não foi permitida pelo navegador/plataforma. Abra o catálogo e copie manualmente (segure o texto no celular).')
+        // Abrir modal com texto para o usuário tocar em "Copiar" (disparo síncrono no clique)
+        setModalText(catalogo)
+        setModalOpen(true)
+        setMsg('Toque em Copiar no modal caso a cópia automática não tenha funcionado')
       }
       
       // Limpar mensagem após 3 segundos
@@ -307,6 +283,28 @@ export default function PainelPrincipal() {
               : 'bg-blue-500/20 border-blue-400 text-blue-100'
           }`}>
             <p className="font-medium">{msg}</p>
+          </div>
+        )}
+
+        {/* Modal de cópia (aparece quando modalOpen=true) */}
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div className="w-full max-w-2xl bg-slate-900 text-white p-4 rounded-md shadow-lg">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-semibold">Catálogo gerado</h3>
+                <button onClick={() => setModalOpen(false)} className="text-sm text-gray-300">Fechar</button>
+              </div>
+              <textarea
+                readOnly
+                value={modalText}
+                className="w-full h-64 p-3 bg-transparent border border-white/10 rounded-md text-sm whitespace-pre-wrap overflow-y-auto"
+                onFocus={(e) => (e.target as HTMLTextAreaElement).select()}
+              />
+              <div className="mt-3 flex gap-2 justify-end">
+                <button onClick={handleModalCopy} className="px-4 py-2 bg-blue-600 rounded-md">Copiar</button>
+                <button onClick={() => setModalOpen(false)} className="px-4 py-2 bg-gray-700 rounded-md">Fechar</button>
+              </div>
+            </div>
           </div>
         )}
 

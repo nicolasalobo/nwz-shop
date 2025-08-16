@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSaldo } from '@/lib/getSaldo'
 import Layout from '@/components/Layout'
@@ -21,10 +20,8 @@ interface ProdutoSabor {
 }
 
 export default function GerenciarEstoque() {
-  const router = useRouter()
   const [produtosSabores, setProdutosSabores] = useState<ProdutoSabor[]>([])
   const [loading, setLoading] = useState(true)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [carregando, setCarregando] = useState(false)
   const [editando, setEditando] = useState<number | null>(null)
   const [itemEditando, setItemEditando] = useState<ProdutoSabor | null>(null)
@@ -56,9 +53,9 @@ export default function GerenciarEstoque() {
     try {
       const saldo = await getSaldo()
       setSaldoAtual(saldo)
-    } catch (error) {
-      console.error('Erro ao carregar saldo:', error)
-    }
+      } catch {
+        console.error('Erro ao carregar saldo:')
+      }
   }
 
   const carregarEstoque = async () => {

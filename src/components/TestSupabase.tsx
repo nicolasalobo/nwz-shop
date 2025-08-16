@@ -10,8 +10,7 @@ export default function TestSupabase() {
     async function test() {
       try {
         // Teste básico de conectividade
-        const { data, error } = await supabase.auth.getUser()
-        
+        const { error } = await supabase.auth.getUser()
         if (error) {
           setStatus(`❌ Erro: ${error.message}`)
         } else {
@@ -23,8 +22,8 @@ export default function TestSupabase() {
           Anon Key: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Configurado' : 'Não configurado'}
         `)
 
-      } catch (err) {
-        setStatus(`💥 Erro geral: ${err}`)
+      } catch {
+        setStatus(`💥 Erro geral`)
       }
     }
     

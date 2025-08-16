@@ -21,7 +21,7 @@ export default function LoginPage() {
     setErro('')
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
+  const { error } = await supabase.auth.signInWithPassword({ 
         email: email.trim(), 
         password: senha 
       })

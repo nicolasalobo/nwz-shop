@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Layout from '@/components/Layout'
 
@@ -25,7 +24,6 @@ interface ItemVenda {
 }
 
 export default function HistoricoVendas() {
-  const router = useRouter()
   const [vendas, setVendas] = useState<Venda[]>([])
   const [loading, setLoading] = useState(true)
 
