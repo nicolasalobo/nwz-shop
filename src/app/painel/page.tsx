@@ -11,6 +11,59 @@ export default function PainelPrincipal() {
   const [saldo, setSaldo] = useState(0)
   const [msg, setMsg] = useState('')
 
+  // Helper para copiar texto com vários fallbacks para dispositivos móveis/webviews
+  const copyTextToClipboard = async (text: string) => {
+    // Tenta Clipboard API moderna
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch (err) {
+      // pode lançar NotAllowedError ou SecurityError em alguns contextos
+    }
+
+    // Fallback clássico: textarea + execCommand
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      textarea.style.top = '0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (successful) return true
+    } catch (err) {
+      // continuar para próximo fallback
+    }
+
+    // Fallback mobile: tentar navigator.share (apenas disponível em alguns navegadores)
+    try {
+      // @ts-ignore
+      if (navigator.share) {
+        // Tenta abrir o compartilhamento; o usuário pode colar em outro app
+        await navigator.share({ text })
+        return true
+      }
+    } catch (err) {
+      // ignora
+    }
+
+    // Último recurso: prompt para o usuário copiar manualmente
+    try {
+      // eslint-disable-next-line no-alert
+      window.prompt('Copie o catálogo abaixo (segure e copie no celular):', text)
+    } catch (err) {
+      // nada a fazer
+    }
+
+    return false
+  }
+
   useEffect(() => {
     async function carregarSaldo() {
       const valor = await getSaldo()
@@ -125,9 +178,13 @@ export default function PainelPrincipal() {
         }
       })
 
-      // Copiar para área de transferência
-      await navigator.clipboard.writeText(catalogo)
-      setMsg('Catálogo copiado para área de transferência!')
+      // Copiar para área de transferência com fallbacks
+      const ok = await copyTextToClipboard(catalogo)
+      if (ok) {
+        setMsg('Catálogo copiado para área de transferência!')
+      } else {
+        setMsg('A cópia automática não foi permitida pelo navegador/plataforma. Abra o catálogo e copie manualmente (segure o texto no celular).')
+      }
       
       // Limpar mensagem após 3 segundos
       setTimeout(() => setMsg(''), 3000)
