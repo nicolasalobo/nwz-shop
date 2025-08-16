@@ -53,10 +53,59 @@ export default function PainelPrincipal() {
       // ignora e continua
     }
 
-    // 4) Último recurso: prompt para o usuário copiar manualmente
+    // 4) Último recurso: mostrar textarea visível para o usuário copiar manualmente
+    // Isso preserva quebras de linha em webviews e navegadores móveis (diferente de window.prompt)
     try {
-      // eslint-disable-next-line no-alert
-      window.prompt('Copie o catálogo abaixo (segure e copie no celular):', text)
+      const container = document.createElement('div')
+      container.style.position = 'fixed'
+      container.style.inset = '0'
+      container.style.zIndex = '2147483647'
+      container.style.display = 'flex'
+      container.style.alignItems = 'center'
+      container.style.justifyContent = 'center'
+      container.style.background = 'rgba(0,0,0,0.6)'
+
+      const box = document.createElement('div')
+      box.style.width = '90%'
+      box.style.maxWidth = '640px'
+      box.style.background = '#0b1220'
+      box.style.padding = '12px'
+      box.style.borderRadius = '8px'
+      box.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)'
+      box.style.color = '#fff'
+
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.readOnly = true
+      textarea.style.width = '100%'
+      textarea.style.height = '60vh'
+      textarea.style.whiteSpace = 'pre-wrap'
+      textarea.style.background = 'transparent'
+      textarea.style.color = 'inherit'
+      textarea.style.border = '1px solid rgba(255,255,255,0.08)'
+      textarea.style.padding = '8px'
+      textarea.style.fontSize = '14px'
+      textarea.style.borderRadius = '4px'
+      textarea.style.resize = 'vertical'
+      textarea.addEventListener('focus', () => textarea.select())
+
+      const closeBtn = document.createElement('button')
+      closeBtn.textContent = 'Fechar'
+      closeBtn.style.marginTop = '8px'
+      closeBtn.style.padding = '8px 12px'
+      closeBtn.style.border = 'none'
+      closeBtn.style.borderRadius = '6px'
+      closeBtn.style.cursor = 'pointer'
+      closeBtn.onclick = () => {
+        try { document.body.removeChild(container) } catch (e) { /* ignore */ }
+      }
+
+      box.appendChild(textarea)
+      box.appendChild(closeBtn)
+      container.appendChild(box)
+      document.body.appendChild(container)
+      textarea.focus()
+      textarea.select()
     } catch (err) {
       // nada a fazer
     }
