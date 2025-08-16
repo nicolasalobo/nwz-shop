@@ -11,6 +11,60 @@ export default function PainelPrincipal() {
   const [saldo, setSaldo] = useState(0)
   const [msg, setMsg] = useState('')
 
+  // Helper para copiar texto com fallback (navigator.clipboard -> execCommand -> prompt/share)
+  const copyTextToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch (err) {
+      // continua para fallback
+    }
+
+    // Fallback legacy: criar textarea, selecionar e usar execCommand
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      // evitar scrolling ao focar
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textarea)
+      if (successful) return true
+    } catch (err) {
+      // segue adiante
+    }
+
+    // Se disponível, tentar compartilhar (bom para mobile)
+    try {
+      // @ts-ignore - alguns navegadores podem ter implementado navigator.share
+      if (navigator.share) {
+        // tente compartilhar como alternativa (o usuário pode colar em outro app)
+        // não await para não bloquear em navegadores que rejeitam
+        await navigator.share({ text })
+        return true
+      }
+    } catch (err) {
+      // segue para prompt
+    }
+
+    // Último recurso: abrir prompt com o texto para copiar manualmente
+    try {
+      // window.prompt permite ao usuário selecionar/colar em dispositivos onde a cópia programática falha
+      // eslint-disable-next-line no-alert
+      window.prompt('Copie o catálogo abaixo (segure e copie no celular):', text)
+    } catch (err) {
+      // nada a fazer
+    }
+
+    return false
+  }
+
   useEffect(() => {
     async function carregarSaldo() {
       const valor = await getSaldo()
@@ -125,9 +179,13 @@ export default function PainelPrincipal() {
         }
       })
 
-      // Copiar para área de transferência
-      await navigator.clipboard.writeText(catalogo)
-      setMsg('Catálogo copiado para área de transferência!')
+      // Copiar para área de transferência com fallback
+      const copiado = await copyTextToClipboard(catalogo)
+      if (copiado) {
+        setMsg('Catálogo copiado para área de transferência!')
+      } else {
+        setMsg('Não foi possível copiar automaticamente. Abra o catálogo e copie manualmente (segure o texto no celular).')
+      }
       
       // Limpar mensagem após 3 segundos
       setTimeout(() => setMsg(''), 3000)
